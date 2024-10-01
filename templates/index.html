@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai&display=swap" rel="stylesheet">
+    <title>Word Guessing Game</title>
+    <style>
+        /* Estilo general */
+        body {
+            background-color: black;
+            color: white;
+            font-family: 'Baloo Bhai', cursive;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+        }
+    
+        /* Agregando estilos para la animación de "CONGRATS!" */
+        .congrats-text {
+            position: absolute;
+            top: 30%; /* Ajustado a una posición más alta */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px; /* Mayor tamaño para "CONGRATS!" */
+            color: white; /* Color inicial del texto */
+            opacity: 0; /* Inicialmente oculto */
+            transition: opacity 1s ease, color 1s ease; /* Transición suave para opacidad y color */
+            z-index: 4; /* Aseguramos que esté encima */
+        }
+
+        .fade-out {
+            opacity: 0; /* Clase para la animación de desvanecimiento */
+            transition: opacity 1s ease; /* Transición suave para opacidad */
+        }
+    
+        .fade-in {
+            opacity: 1; /* Clase para la animación de aparición */
+            transition: opacity 1s ease; /* Transición suave para opacidad */
+        }
+    
+        .fade-out-secret {
+            opacity: 0;
+            transition: opacity 1s ease; /* Transición suave para desvanecimiento */
+        }
+
+        .fade-in-secret {
+            opacity: 1;
+            transition: opacity 1s ease; /* Transición suave para aparición */
+        }
+    
+        .header-container {
+            display: flex; /* Usar flexbox para alinear imagen y texto */
+            align-items: center; /* Centrar verticalmente */
+            position: absolute; /* Para posicionar en la parte superior */
+            top: 10px; /* Distancia desde la parte superior */
+            left: 10px; /* Distancia desde la parte izquierda */
+            z-index: 10; /* Asegurarse de que esté encima de otros elementos */
+        }
+    
+        .logo {
+            width: 100px; /* Ajusta el tamaño de la imagen según sea necesario */
+            height: auto; /* Mantener la proporción de la imagen */
+            margin-right: 10px; /* Espacio entre la imagen y el texto */
+        }
+    
+        .header-title {
+            color: darkgray; /* Color del texto */
+            font-size: 24px; /* Ajusta el tamaño de la fuente según sea necesario */
+            text-transform: uppercase; /* Poner el texto en mayúsculas */
+            margin: 0; /* Eliminar el margen por defecto */
+        }
+        /* Contenedor para las palabras */
+        .words-container {
+            position: relative;
+            transform-origin: center; /* Para mantener el centro del escalado */
+            transform: scale(0.8); /* Escala inicial al 80% */
+        }
+    
+        .secret-word-circle {
+            /* Estilo existente */
+            background-image: url("{{ url_for('static', filename='Lente_palabra_oculta.png') }}");
+            background-size: cover;
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2; /* Aseguramos que esté encima */
+        }
+    
+        .secret-word-text {
+            position: absolute;
+            top: 50%; /* Mantener en 50% */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding-top: 40px; /* Añadir padding superior para desplazar el texto */
+            font-size: 24px;
+            font-weight: bold;
+            color: rgb(230, 201, 169);
+            text-align: center;
+            z-index: 3; /* Aseguramos que esté encima */
+            opacity: 0.1;
+            transition: opacity 1s ease; /* Transición para la opacidad */
+        }
+    
+        .user-word-circle, .near-word-circle {
+            background-image: url("{{ url_for('static', filename='Lente_palabras_adivinadas.png') }}");
+            background-size: cover;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            font-size: 18px;
+            color: rgb(230, 201, 169);
+            text-align: center;
+            overflow: hidden;
+            z-index: 1; /* Debe estar por debajo de .secret-word-circle y .secret-word-text */
+        }
+    
+        /* Estilo del formulario */
+        form {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+    
+        input[type="text"] {
+            font-family: 'Baloo Bhai', cursive;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            margin-right: 10px;
+        }
+    
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: rgb(40, 40, 40);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px; /* Agregar margen derecho */
+            font-family: 'Baloo Bhai', cursive;
+        }
+    
+        /* Estilo para la barra deslizante */
+        .slider-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: darkgray; /* Color del texto de la barra deslizante */
+        }
+    
+        input[type="range"] {
+            width: 200px;
+            appearance: none; /* Para eliminar el estilo por defecto */
+            background: darkgray; /* Color de fondo de la barra deslizante */
+            height: 5px; /* Altura de la barra */
+            border-radius: 5px; /* Bordes redondeados */
+        }
+    
+        /* Estilo del thumb de la barra deslizante */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px; /* Ancho del thumb */
+            height: 15px; /* Altura del thumb */
+            background: gray; /* Color del thumb */
+            border-radius: 50%; /* Bordes redondeados */
+            cursor: pointer; /* Cambia el cursor al pasar sobre el thumb */
+        }
+    
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: gray;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <img src="{{ url_for('static', filename='wordome_logo.jpg') }}" alt="Wordome Logo" class="logo">
+        <h1 class="header-title">WORDOME</h1>
+    </div>
+    <!-- Contenedor para las palabras -->
+    <div class="words-container">
+        <!-- Contenedor para la imagen de la palabra secreta -->
+        <div class="secret-word-circle"></div>
+
+        <!-- Contenedor para el texto de la palabra secreta -->
+        <div class="secret-word-text">{{ palabra_secreta }}</div>
+
+        <!-- Contenedor para las palabras cercanas -->
+        <div id="near-word-container"></div>
+
+        <!-- Contenedor para las palabras ingresadas por el usuario -->
+        <div id="user-word-container"></div>
+    </div>
+
+    <!-- Formulario de entrada de palabra -->
+    <form method="post">
+        <input type="text" id="user-word" name="palabra" placeholder="Enter a word" required onfocus="clearInputOnFocus()" onblur="checkEmptyOnBlur()">
+        <button type="submit">Guess</button>
+        <button type="submit" name="new_game">New Word</button> <!-- Botón para cambiar la palabra -->
+    </form>
+
+    <!-- Contenedor de la barra deslizante -->
+    <div class="slider-container">
+        <label for="zoom-slider">Zoom:</label>
+        <input type="range" id="zoom-slider" min="0.1" max="2" step="0.01" value="0.8"> <!-- Cambiado a 0.01 -->
+    </div>
+
+    <script>
+        // Variables del servidor: palabras cercanas, palabras del usuario y palabra secreta
+        const palabrasCercanas = JSON.parse('{{ palabras_cercanas | tojson | safe }}');
+        const palabrasUsuario = JSON.parse('{{ palabras_usuario | tojson | safe }}');
+        const distanciasUsuario = JSON.parse('{{ distancias_usuario | tojson | safe }}');
+        const palabraSecreta = "{{ palabra_secreta }}";
+        const distanciaBase = 300; // Distancia base para la colocación
+        const posicionesFijasUsuario = []; // Lista para almacenar posiciones fijas de palabras usuario
+        const circulosColocados = []; // Para almacenar la posición y tamaño de cada palabra colocada
+
+        // Función para animar la aparición de "CONGRATS!"
+
+        function mostrarCongrats() {
+            const congratsText = document.createElement('div');
+            congratsText.className = 'congrats-text fade-in'; // Comienza con fade-in para que aparezca directamente
+            congratsText.textContent = "CONGRATS!";
+            document.body.appendChild(congratsText);
+
+            // Obtener la palabra secreta y establecer opacidad a 1
+            const secretWordText = document.querySelector('.secret-word-text');
+            secretWordText.style.opacity = '1'; // Cambiar la opacidad a 1 directamente
+
+            // Iniciar la animación de "CONGRATS!" y la palabra secreta
+            setTimeout(() => {
+                congratsText.style.color = "darkgray"; // Cambia a color anterior
+                // La palabra secreta ya está visible
+            }, 1000); // Mantiene visible durante 1 segundo
+
+            setTimeout(() => {
+                // No se elimina "CONGRATS!", permanece visible
+                // Limpiar las clases de opacidad de la palabra secreta
+            }, 2000); // Asegura que las clases de la palabra secreta se limpien
+        }
+
+        // Función para verificar palabras ingresadas
+        function verificarPalabras() {
+            // Verificar si alguna de las palabras ingresadas está en el array de palabrasUsuario
+            if (palabrasUsuario.includes(palabraSecreta)) {
+                mostrarCongrats(); // Mostrar la animación
+            }
+        }
+
+        // Verificar periódicamente
+        setInterval(verificarPalabras, 1000); // Cada segundo
+
+        // Cuando el usuario haga clic en el cuadro de texto, limpia el campo si contiene "o"
+        function clearInputOnFocus() {
+            const userWordInput = document.getElementById('user-word');
+            if (userWordInput.value === ' ') {
+                userWordInput.value = '';
+            }
+        }
+
+        // Si el campo queda vacío al perder el foco, se restablece el valor "o"
+        function checkEmptyOnBlur() {
+            const userWordInput = document.getElementById('user-word');
+            if (!userWordInput.value.trim()) {
+                userWordInput.value = ' ';
+            }
+        }
+
+        // Función para convertir de polar a cartesiano
+        function polarToCartesian(angle, radius) {
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            return { x, y };
+        }
+
+        // Función para calcular el tamaño del círculo según la longitud de la palabra
+        function calcularTamanoCirculo(palabra) {
+            const baseSize = 50; // Tamaño base
+            const size = baseSize + ((palabra.length - 3) * 12); // Aumentar tamaño según la longitud
+            return Math.max(size, 50); // Asegurar tamaño mínimo
+        }
+
+        // Función para comprobar si dos círculos colisionan
+        function colisionaConCirculosExistentes(x, y, radioNuevo) {
+            for (let i = 0; i < circulosColocados.length; i++) {
+                const { x: xExistente, y: yExistente, radio: radioExistente } = circulosColocados[i];
+                const distanciaEntreCentros = Math.sqrt(Math.pow(x - xExistente, 2) + Math.pow(y - yExistente, 2));
+                const sumaRadios = radioNuevo + radioExistente + 10; // 10 es el "perímetro de seguridad"
+                
+                if (distanciaEntreCentros < sumaRadios) {
+                    return true; // Hay colisión
+                }
+            }
+            return false; // No hay colisión
+        }
+
+        // Función para animar el movimiento de los círculos
+        function animarMovimiento(circulo, xInicial, yInicial, xFinal, yFinal, duracion) {
+            const deltaX = (xFinal - xInicial) / 50; // 50 pasos para la animación
+            const deltaY = (yFinal - yInicial) / 50;
+            let pasos = 0;
+
+            const intervalId = setInterval(() => {
+                if (pasos >= 50) {
+                    clearInterval(intervalId);
+                } else {
+                    const nuevoX = xInicial + (deltaX * pasos);
+                    const nuevoY = yInicial + (deltaY * pasos);
+                    circulo.style.left = `${nuevoX}px`;
+                    circulo.style.top = `${nuevoY}px`;
+                    pasos++;
+                }
+            }, duracion / 50);
+        }
+
+        // Función para colocar las palabras de manera radial
+        function colocarPalabras() {
+            const containerCercanas = document.getElementById('near-word-container');
+            const containerUsuario = document.getElementById('user-word-container');
+
+            // Colocar palabras cercanas
+            const numPalabrasCercanas = palabrasCercanas.length;
+
+            for (let i = 0; i < numPalabrasCercanas; i++) {
+                const palabra = palabrasCercanas[i];
+                const angle = (2 * Math.PI / numPalabrasCercanas) * i;
+                const adjustedRadius = distanciaBase;
+
+                // Crear el nuevo círculo
+                const circle = document.createElement('div');
+                circle.classList.add('near-word-circle');
+                circle.style.width = `${calcularTamanoCirculo(palabra)}px`;
+                circle.style.height = `${calcularTamanoCirculo(palabra)}px`;
+                const { x, y } = polarToCartesian(angle, adjustedRadius);
+                circle.style.left = `calc(50% + ${x}px)`;
+                circle.style.top = `calc(50% + ${y}px)`;
+                circle.textContent = palabra;
+
+                containerCercanas.appendChild(circle);
+            }
+
+            // Colocar palabras del usuario
+            const numPalabrasUsuario = palabrasUsuario.length;
+
+            for (let i = 0; i < numPalabrasUsuario; i++) {
+                const palabra = palabrasUsuario[i];
+                const similitud = distanciasUsuario[i];  // Similitud proporcionada
+
+                // Verificar si ya se ha fijado una posición para esta palabra
+                let angle, adjustedRadius;
+                if (posicionesFijasUsuario[i] !== undefined) {
+                    // Si ya existe, reutilizamos la posición fijada
+                    ({ angle, adjustedRadius } = posicionesFijasUsuario[i]);
+                } else {
+                    // Si no existe, calculamos un nuevo ángulo y distancia
+                    angle = (2 * Math.PI / numPalabrasUsuario) * i;
+                    adjustedRadius = distanciaBase * (similitud) * Math.exp(similitud) + 40; // Aumentar el radio
+
+                    // Intentar colocar la palabra en un ángulo libre
+                    let { x, y } = polarToCartesian(angle, adjustedRadius);
+                    const radioNuevo = calcularTamanoCirculo(palabra) / 2;
+                    let intentos = 0;
+                    while (colisionaConCirculosExistentes(x, y, radioNuevo) && intentos < 360) {
+                        angle += (Math.PI / 180) * 5; // Incrementamos el ángulo en 5 grados
+                        intentos++;
+                        const nuevaPosicion = polarToCartesian(angle, adjustedRadius);
+                        x = nuevaPosicion.x;
+                        y = nuevaPosicion.y;
+                    }
+
+                    // Fijamos la posición para futuros movimientos
+                    posicionesFijasUsuario[i] = { angle, adjustedRadius };
+                }
+
+                // Crear el nuevo círculo
+                const circle = document.createElement('div');
+                circle.classList.add('user-word-circle');
+                circle.style.width = `${calcularTamanoCirculo(palabra)}px`;
+                circle.style.height = `${calcularTamanoCirculo(palabra)}px`;
+                const { x, y } = polarToCartesian(angle, adjustedRadius);
+                circle.style.left = `calc(50% + ${x}px)`;
+                circle.style.top = `calc(50% + ${y}px)`;
+                circle.textContent = palabra;
+
+                // Modificar el z-index si la similitud es 0
+                if (similitud === 0) {
+                    // Poner la palabra correcta en primer plano
+                    const secretCircle = document.querySelector('.secret-word-circle');
+                    const secretText = document.querySelector('.secret-word-text');
+                    secretCircle.style.zIndex = '4'; // Aseguramos que esté por encima
+                    secretText.style.zIndex = '5'; // Aseguramos que esté por encima
+
+                    // Todos los círculos de usuario pasan a segundo plano
+                    circle.style.zIndex = '1'; 
+                } else {
+                    circle.style.zIndex = '1'; // Asegura que los círculos del usuario estén detrás
+                }
+
+                containerUsuario.appendChild(circle);
+
+                // Agregar la información del círculo a la lista de círculos colocados
+                circulosColocados.push({ x, y, radio: calcularTamanoCirculo(palabra) / 2 });
+            }
+        }
+
+        // Colocar las palabras al cargar la página
+        window.onload = function() {
+            colocarPalabras();
+
+            // Recuperar el valor del zoom del almacenamiento local
+            const storedZoom = localStorage.getItem('zoomValue');
+            if (storedZoom) {
+                const zoomSlider = document.getElementById('zoom-slider');
+                zoomSlider.value = storedZoom; // Establecer el valor del slider
+                document.querySelector('.words-container').style.transform = `scale(${storedZoom})`; // Aplicar zoom
+            }
+        };
+
+        // Manejar el cambio de la barra deslizante
+        const zoomSlider = document.getElementById('zoom-slider');
+        const wordsContainer = document.querySelector('.words-container');
+
+        zoomSlider.addEventListener('input', function() {
+            const scaleValue = this.value;
+            wordsContainer.style.transform = `scale(${scaleValue})`;
+            localStorage.setItem('zoomValue', scaleValue); // Guardar el valor del zoom en el almacenamiento local
+        });
+    </script>
+
+</body>
+</html>
